@@ -1,54 +1,76 @@
-# encoding: utf-8
-#
-# Основной класс игры Game. Хранит состояние игры и предоставляет функции для
-# развития игры (ввод новых букв, подсчет кол-ва ошибок и т. п.).
 class Game
-  attr_reader :status, :errors, :letters, :good_letters, :bad_letters
+  # Количество допустимых ошибок
+  TOTAL_ERRORS_ALLOWED = 7
 
+  # Конструктор класса Game на вход получает строку с загаданным словом.
+  #
+  # В конструкторе инициализируем две переменные экземпляра: массив букв
+  # загаданного слова и пустой массив для дальнейшего сбора в него вводимых
+  # букв.
   def initialize(word)
-    @letters = get_letters(word)
-    @errors = 0
-    @good_letters = []
-    @bad_letters = []
-    @status = 0
+    @letters = word.chars
+    @user_guesses = []
   end
 
-  def get_letters(word)
-    abort 'Загадано пустое слово, нечего отгадывать. Закрываемся' if [nil, ''].include?(word)
-
-    # Переводим слово в верхний регистр перед тем, как разбить на буквы.
-    # Используем для этого метод upcase в модуле UnicodeUtils.
-    word = UnicodeUtils.upcase(word.encode('UTF-8'))
-
-    word.split('')
+  # Возвращает массив букв, введенных пользователем, но отсутствующих в
+  # загаданном слове (ошибочные буквы)
+  def errors
+    @user_guesses - @letters
   end
 
-  def next_step(letter)
-    # Введенную пользователем букву Мы также переводим в верхний регистр
-    letter = UnicodeUtils.upcase(letter)
+  # Возвращает количество ошибок, сделанных пользователем
+  def errors_made
+    errors.length
+  end
 
-    return if @status == -1 || @status == 1
+  # Отнимает от допустимого количества ошибок число сделанных ошибок и
+  # возвращает оставшееся число допустимых ошибок
+  def errors_allowed
+    TOTAL_ERRORS_ALLOWED - errors_made
+  end
 
-    return if @good_letters.include?(letter) || @bad_letters.include?(letter)
+  # Возвращает массив с уже отгаданными буквами, вместо неотгаданных букв в
+  # массиве на соответствующем месте находится nil. Этот массив нужен методу
+  # экземпляра класса ConsoleInterface для вывода слова на игровом табло.
+  def letters_to_guess
+    result =
+      @letters.map do |letter|
+        if @user_guesses.include?(letter)
+          letter
+        else
+          nil
+        end
+      end
+    result
+  end
 
-    if @letters.include?(letter)
-      @good_letters << letter
+  # Возвращает true, если у пользователя не осталось ошибок, т.е. игра проиграна
+  def lost?
+    errors_allowed == 0
+  end
 
-      @status = 1 if @good_letters.uniq.sort == @letters.uniq.sort
-    else
-      @bad_letters << letter
-      @errors += 1
+  # Возвращает true, если игра закончена (проиграна или выиграна)
+  def over?
+    won? || lost?
+  end
 
-      @status = -1 if @errors >= 7
+  # По сути, это основной игровой метод, типа "сыграть букву".
+  #
+  # Если игра не закончена и передаваемая буква отсутствует в массиве
+  # введённых букв, то закидывает передаваемую букву в массив "попыток".
+  def play!(letter)
+    if !over? && !@user_guesses.include?(letter)
+      @user_guesses << letter
     end
   end
 
-  def ask_next_letter
-    puts "\nВведите следующую букву"
+  # Возвращает true, если не осталось неотгаданных букв (пользователь выиграл)
+  def won?
+    (@letters - @user_guesses).empty?
+  end
 
-    letter = ''
-    letter = STDIN.gets.encode('UTF-8').chomp while letter == ''
-
-    next_step(letter)
+  # Возвращает загаданное слово, склеивая его из загаданных букв
+  def word
+    @letters.join
   end
 end

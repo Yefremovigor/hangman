@@ -1,17 +1,4 @@
-# encoding: utf-8
-
-# Подключаем библиотеку unicode_utils. Предварительно её надо установить, набрав
-# в консоли
-#
-# gem install unicode_utils
-require 'unicode_utils'
-
-require_relative 'lib/game'
-require_relative 'lib/result_printer'
-require_relative 'lib/word_reader'
-
-# Этот код необходим только при использовании русских букв на Windows
-if Gem.win_platform?
+if (Gem.win_platform?)
   Encoding.default_external = Encoding.find(Encoding.locale_charmap)
   Encoding.default_internal = __ENCODING__
 
@@ -20,25 +7,26 @@ if Gem.win_platform?
   end
 end
 
+require_relative 'lib/console_interface'
+require_relative 'lib/game'
 
-puts "Игра виселица. Версия 4.1 (c) goodprogrammer.ru & Yefremovigor\n\n"
-sleep 1
+# 1. Поздороваться
+puts "Всем привет!"
 
-printer = ResultPrinter.new
+# 2. Загрузить случайное слово из файла
+word = File.readlines(__dir__ + '/data/words.txt', encoding: 'UTF-8', chomp: true).sample
+game = Game.new(word)
+console_interface = ConsoleInterface.new(game)
 
-word_reader = WordReader.new
-
-words_file_name = File.dirname(__FILE__) + '/data/words.txt'
-
-# Все изменения логики будут у нас в классе Game. Нам нужно в двух местах
-# преобразовать полученные данные в верхний регистр, используя метод upcase
-# подключенного модуля UnicodeUtils: при генерации массива букв из полученного
-# слова в конструкторе и при получении новой буквы от пользователя.
-game = Game.new(word_reader.read_from_file(words_file_name))
-
-while game.status.zero?
-  printer.print_status(game)
-  game.ask_next_letter
+# 3. Пока не закончилась игра
+until game.over?
+  #   3.1. Вывести очередное состояние игры
+  console_interface.print_out
+  #   3.2. Спросить очередную букву
+  letter = console_interface.get_input
+  #   3.3. Обновить состояние игры
+  game.play!(letter)
 end
 
-printer.print_status(game)
+# 4. Вывести финальное состояние игры
+console_interface.print_out
