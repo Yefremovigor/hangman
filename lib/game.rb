@@ -8,14 +8,14 @@ class Game
   # загаданного слова и пустой массив для дальнейшего сбора в него вводимых
   # букв.
   def initialize(word)
-    @letters = word.chars
+    @letters = word.upcase.chars
     @user_guesses = []
   end
 
   # Возвращает массив букв, введенных пользователем, но отсутствующих в
   # загаданном слове (ошибочные буквы)
   def errors
-    @user_guesses - @letters
+    @user_guesses - normalized_letters
   end
 
   # Возвращает количество ошибок, сделанных пользователем
@@ -33,20 +33,14 @@ class Game
   # массиве на соответствующем месте находится nil. Этот массив нужен методу
   # экземпляра класса ConsoleInterface для вывода слова на игровом табло.
   def letters_to_guess
-    result =
-      @letters.map do |letter|
-        if @user_guesses.include?(letter)
-          letter
-        else
-          nil
-        end
-      end
-    result
+    @letters.map do |letter|
+      letter if @user_guesses.include?(normalize_letter(letter))
+    end
   end
 
   # Возвращает true, если у пользователя не осталось ошибок, т.е. игра проиграна
   def lost?
-    errors_allowed == 0
+    errors_allowed.zero?
   end
 
   # Возвращает true, если игра закончена (проиграна или выиграна)
@@ -59,18 +53,33 @@ class Game
   # Если игра не закончена и передаваемая буква отсутствует в массиве
   # введённых букв, то закидывает передаваемую букву в массив "попыток".
   def play!(letter)
-    if !over? && !@user_guesses.include?(letter)
-      @user_guesses << letter
-    end
+    @user_guesses << normalize_letter(letter) if !over? && !@user_guesses.include?(normalize_letter(letter))
   end
 
   # Возвращает true, если не осталось неотгаданных букв (пользователь выиграл)
   def won?
-    (@letters - @user_guesses).empty?
+    (normalized_letters - @user_guesses).empty?
   end
 
   # Возвращает загаданное слово, склеивая его из загаданных букв
   def word
     @letters.join
+  end
+
+  # Заменяет Ё -> Е, Й -> И
+  def normalize_letter(letter)
+    case letter
+    when 'Ё'
+      'Е'
+    when 'Й'
+      'И'
+    else
+      letter
+    end
+  end
+
+  # Масив букв с заменой Ё -> Е, Й -> И
+  def normalized_letters
+    @letters.map { |letter| normalize_letter(letter) }
   end
 end
